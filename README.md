@@ -6,7 +6,7 @@ Dorin Candy Crush, za njen rojstni dan (sobota, 31. 10. 2026, ob 18:00). Načrt 
 
 ## Trenutno stanje (29. 10. 2026 zvečer)
 
-Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=66` v `index.html`.
+Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=67` v `index.html`.
 
 **Narejeno**
 
