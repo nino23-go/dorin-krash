@@ -3,7 +3,9 @@
 // Brez njiju funkcija vrne 503 in igra pokaže samo rezultate s tega telefona.
 //
 // GET  /api/lestvica          → { igralci: [{ id, ime, zvezdice, tocke, stopnja }] } (najboljših 50)
-// POST /api/lestvica  { id, ime, zvezdice, tocke, stopnja } → shrani in vrne { igralci, jaz }
+// POST /api/lestvica  { id, ime, zvezdice, tocke, stopnja, stopnje } → shrani in vrne { igralci, jaz, stopnje }
+//   stopnje = { "1": [zvezdice, točke], … } najboljši rezultat po stopnjah; strežnik ga združi s shranjenim
+//   (največje po stopnji) in vrne nazaj, da igralec na novem telefonu ali brskalniku nadaljuje, kjer je ostal.
 //
 // Eno ime = en igralec: »Nino«, »nino « in »Ninó« so isti vpis. Kdor se vpiše z imenom, ki že
 // obstaja, piše v obstoječi vpis (ostane boljši rezultat), strežnik pa mu vrne njegov id (jaz).
@@ -38,7 +40,28 @@ async function preberi() {
   const videno = new Set();
   return vrstice.map((v, i) => ({ id: idji[i], ...razberi(v) }))
     .filter(p => p.ime && !videno.has(kljucImena(p.ime)) && videno.add(kljucImena(p.ime)))
-    .slice(0, NAJVEC);
+    .slice(0, NAJVEC)
+    .map(({ id, ime, zvezdice, tocke, stopnja }) => ({ id, ime, zvezdice, tocke, stopnja }));
+}
+
+// Napredek po stopnjah: { "1": [zvezdice, točke] }; neveljavno izpusti, združi z največjim po stopnji.
+function stopnjeIz(v) {
+  const izhod = {};
+  for (const [st, par] of Object.entries(v && typeof v === 'object' ? v : {})) {
+    const n = Number(st);
+    if (!Number.isInteger(n) || n < 1 || n > 60 || !Array.isArray(par)) continue;
+    const zv = celo(par[0], 3), t = celo(par[1], 50000);
+    if (zv || t) izhod[n] = [zv, t];
+  }
+  return izhod;
+}
+function zdruziStopnje(a, b) {
+  const izhod = { ...a };
+  for (const [st, [zv, t]] of Object.entries(b)) {
+    const [zv0, t0] = izhod[st] || [0, 0];
+    izhod[st] = [Math.max(zv0, zv), Math.max(t0, t)];
+  }
+  return izhod;
 }
 
 // Kateri id pripada imenu: iz tabele imen, sicer najboljši star vpis s tem imenom, sicer nov.
@@ -82,19 +105,21 @@ module.exports = async (req, res) => {
       const jaz = await idZaIme(kljucImena(ime), id);
       const [prej] = await redis([['HGET', PODATKI, jaz]]);
       const star = razberi(prej);
-      const nov = {
+      const s = zdruziStopnje(stopnjeIz(star && star.s), stopnjeIz(b.stopnje));
+      const vsota = i => Object.values(s).reduce((a, par) => a + par[i], 0);
+      // Isto ime z drugega telefona: povsod ostane boljše (stari vpisi še nimajo stopenj, zato tudi max s seštevki)
+      const igralec = {
         ime: star && star.ime ? star.ime : ime,
-        zvezdice: celo(b.zvezdice, 3 * 60),
-        tocke: celo(b.tocke, 60 * 50000),
-        stopnja: celo(b.stopnja, 60),
+        zvezdice: Math.max(vsota(0), celo(b.zvezdice, 3 * 60), (star && star.zvezdice) || 0),
+        tocke: Math.max(vsota(1), celo(b.tocke, 60 * 50000), (star && star.tocke) || 0),
+        stopnja: Math.max(Object.keys(s).length, celo(b.stopnja, 60), (star && star.stopnja) || 0),
+        s,
       };
-      // Isto ime z drugega telefona: ostane boljši rezultat.
-      const igralec = star && (star.tocke || 0) > nov.tocke ? { ...star, ime: nov.ime } : nov;
       await redis([
         ['HSET', PODATKI, jaz, JSON.stringify(igralec)],
         ['ZADD', RANG, String(igralec.tocke), jaz],
       ]);
-      return res.status(200).json({ igralci: await preberi(), jaz });
+      return res.status(200).json({ igralci: await preberi(), jaz, stopnje: s });
     } else if (req.method !== 'GET') {
       return res.status(405).json({ napaka: 'samo-get-ali-post' });
     }

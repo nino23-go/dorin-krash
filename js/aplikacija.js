@@ -56,18 +56,48 @@ function mojRezultat() {
 }
 
 // Pošlje rezultat (če je ime vpisano) in vrne skupno lestvico; null, če ni povezave ali baza ni vklopljena.
+// Pošlje tudi najboljše po stopnjah; strežnik vrne združen napredek z vseh telefonov in brskalnikov tega imena.
 async function lestvicaStreznik() {
   try {
-    const odgovor = igralec.ime
-      ? await fetch('api/lestvica', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: igralec.id, ime: igralec.ime, ...mojRezultat() }) })
+    const ime = igralec.ime;
+    const stopnje = {};
+    for (const st of Object.keys(napredek.zvezdice)) stopnje[st] = [napredek.zvezdice[st] || 0, (napredek.tocke || {})[st] || 0];
+    const odgovor = ime
+      ? await fetch('api/lestvica', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: igralec.id, ime, ...mojRezultat(), stopnje }) })
       : await fetch('api/lestvica');
     if (!odgovor.ok) return null;
     const podatki = await odgovor.json();
-    // Ime že obstaja na lestvici: od zdaj ta telefon piše v tisti vpis.
-    if (podatki.jaz && podatki.jaz !== igralec.id) { igralec.id = podatki.jaz; shraniIgralca(); }
+    // medtem zamenjano ime (»Nisi ti?«): odgovor ni več za tega igralca
+    if (ime && igralec.ime === ime) {
+      // Ime že obstaja na lestvici: od zdaj ta telefon piše v tisti vpis.
+      if (podatki.jaz && podatki.jaz !== igralec.id) { igralec.id = podatki.jaz; shraniIgralca(); }
+      prevzemiStopnje(podatki.stopnje);
+    }
     return podatki.igralci || null;
   } catch (_) { return null; }
 }
+
+// Napredek s strežnika: po stopnjah ostane boljše, odklene se naslednja za najvišjo rešeno.
+function prevzemiStopnje(stopnje) {
+  if (!stopnje) return;
+  napredek.tocke = napredek.tocke || {};
+  let novo = false;
+  for (const [st, [zv, t]] of Object.entries(stopnje)) {
+    if (!(st >= 1 && st <= STOPNJE.length)) continue;
+    if (zv > (napredek.zvezdice[st] || 0)) { napredek.zvezdice[st] = zv; novo = true; }
+    if (t > (napredek.tocke[st] || 0)) { napredek.tocke[st] = t; novo = true; }
+  }
+  const najvisja = Math.max(0, ...Object.keys(napredek.zvezdice).map(Number));
+  const odklenjeno = Math.min(STOPNJE.length, najvisja + 1);
+  if (odklenjeno > napredek.odklenjeno) { napredek.odklenjeno = odklenjeno; novo = true; }
+  if (!novo) return;
+  shrani();
+  osveziRezultat();
+  if (document.body.dataset.zaslon === 'zemljevid') odpriZemljevid();
+}
+
+// Počaka na strežnik največ ms (slaba povezava ne sme ustaviti igre).
+const najvec = (obljuba, ms) => Promise.race([obljuba, sleep(ms)]);
 
 const varno = t => String(t).replace(/[&<>"']/g, z => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[z]);
 const doStopnje = n => (n ? `do ${n}. stopnje` : 'še na začetku');
@@ -114,7 +144,10 @@ function osveziRezultat() {
 let preverjamIme = false;
 async function igraj(e) {
   if (e) e.preventDefault();
-  if (igralec.ime) return odpriZemljevid();
+  if (igralec.ime) {
+    await najvec(zacetnaSinhronizacija, 3000);
+    return odpriZemljevid();
+  }
   const ime = $('vpis-ime').value.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 20);
   if (!ime) {
     $('vpis').classList.remove('napaka');
@@ -148,13 +181,14 @@ async function igraj(e) {
   vpisi(ime);
 }
 
-function vpisi(ime) {
+async function vpisi(ime) {
   igralec.ime = ime;
   shraniIgralca();
   naloziNapredek();
   osveziVpis();
   osveziZivljenja();
-  lestvicaStreznik();
+  // na novem telefonu ali brskalniku: nadaljuj tam, kjer je to ime ostalo
+  await najvec(lestvicaStreznik(), 3000);
   odpriZemljevid();
 }
 
@@ -688,3 +722,5 @@ ikonaZvoka();
 $('zvok').addEventListener('click', oknoZvoka);
 document.addEventListener('click', e => { if (e.target.closest('button') && e.target.id !== 'zvok') Zvok.klik(); });
 osveziZivljenja();
+// ob odprtju: prevzemi napredek, ki ga je to ime naredilo drugje
+const zacetnaSinhronizacija = igralec.ime ? lestvicaStreznik() : Promise.resolve();
