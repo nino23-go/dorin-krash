@@ -6,7 +6,7 @@ Dorin Candy Crush, za njen rojstni dan (sobota, 31. 10. 2026, ob 18:00). Načrt 
 
 ## Trenutno stanje (30. 10. 2026)
 
-Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=70` v `index.html`.
+Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=71` v `index.html`.
 
 **Narejeno**
 
@@ -31,7 +31,7 @@ Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=7
   - če vpisano ime že igra drugje, igra vpraša »Si to ti?« (dve Maji naj dodata začetnico priimka);
   - napredek na telefonu je ločen po imenih: »Nisi ti?« novemu igralcu ne prenese tujih stopenj in točk;
   - strežnik hrani najboljše po stopnjah (polje `s` v vpisu), zato igralec na novem telefonu ali v drugem brskalniku (npr. Messenger → Safari) nadaljuje, kjer je ostal;
-  - 🏁 ob imenu pomeni, da je igralec prišel do konca;
+  - kdor je prišel do konca, ima ob imenu 🏁 in napis »na cilju«;
   - **zaprtje:** v soboto, 31. 10., ob 18:00 (`KONEC` v `api/lestvica.js`, preverja strežnik) točke in vrstni red obmirujejo, na vrhu piše zmagovalec. Igrati se da naprej, napredek po stopnjah se še shranjuje.
 - **Predogled povezave:** Messenger/WhatsApp pokažeta sličico `slike/deli.jpg` z naslovom in vabilom (oznake `og:` na vrhu `index.html`; slika iz `Fotke/_skripte/deli.py`, nato JPG pod ~150 KB).
 

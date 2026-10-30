@@ -102,7 +102,7 @@ function prevzemiStopnje(stopnje) {
 const najvec = (obljuba, ms) => Promise.race([obljuba, sleep(ms)]);
 
 const varno = t => String(t).replace(/[&<>"']/g, z => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[z]);
-const doStopnje = n => (n ? `do ${n}. stopnje` : 'še na začetku');
+const doStopnje = n => (n >= STOPNJE.length ? 'na cilju' : n ? `do ${n}. stopnje` : 'še na začetku');
 
 let lestvicaOdkod = 'vstop';
 async function odpriLestvico(odkod) {
@@ -117,13 +117,13 @@ async function odpriLestvico(odkod) {
     igralci = [{ id: igralec.id, ime: igralec.ime || 'Ti', ...mojRezultat() }];
     $('lestvica-opomba').textContent = 'Skupna lestvica se ni naložila, zato vidiš samo svoj rezultat.';
   } else if (lestvicaZaprta) {
-    $('lestvica-opomba').textContent = 'Lestvica je zaprta. Igraš lahko naprej, točke se ne štejejo več. 🏁 = na cilju';
+    $('lestvica-opomba').textContent = 'Lestvica je zaprta. Igraš lahko naprej, točke se ne štejejo več.';
     if (igralci[0]) {
       $('lestvica-zmagovalec').hidden = false;
       $('lestvica-zmagovalec').innerHTML = `🏆 Zmaga: <b>${varno(igralci[0].ime)}</b> · ${stevilo(igralci[0].tocke || 0)} točk`;
     }
   } else {
-    $('lestvica-opomba').textContent = (igralec.ime ? '' : 'Vpiši ime na prvem zaslonu, da se pokažeš tudi ti. ') + 'Lestvica se zapre v soboto ob 18:00. 🏁 = na cilju';
+    $('lestvica-opomba').textContent = (igralec.ime ? '' : 'Vpiši ime na prvem zaslonu, da se pokažeš tudi ti. ') + 'Lestvica se zapre v soboto ob 18:00.';
   }
   seznam.innerHTML = igralci.map((p, i) => `
     <li class="${p.id === igralec.id ? 'jaz' : ''} ${i === 0 ? 'prvi' : ''}" style="animation-delay:${i * 70}ms">
