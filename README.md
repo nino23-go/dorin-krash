@@ -29,7 +29,7 @@ Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=6
   - vsako ime je na lestvici samo enkrat: isto ime z drugega telefona piše v obstoječi vpis in ostane boljši rezultat;
   - če vpisano ime že igra drugje, igra vpraša »Si to ti?« (dve Maji naj dodata začetnico priimka);
   - napredek na telefonu je ločen po imenih: »Nisi ti?« novemu igralcu ne prenese tujih stopenj in točk.
-- **Predogled povezave:** Messenger/WhatsApp pokažeta sličico `slike/deli.png` z naslovom in vabilom (oznake `og:` v `index.html`, slika iz `Fotke/_skripte/deli.py`).
+- **Predogled povezave:** Messenger/WhatsApp pokažeta sličico `slike/deli.jpg` z naslovom in vabilom (oznake `og:` na vrhu `index.html`; slika iz `Fotke/_skripte/deli.py`, nato JPG pod ~150 KB).
 
 **Ni preverjeno na pravem telefonu:** zvok na iPhonu, gladkost eksplozij, gong v joga studiu, prvi vpis na lestvico z združevanjem imen.
 
