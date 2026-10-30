@@ -56,7 +56,6 @@ function mojRezultat() {
 }
 
 // Pošlje rezultat (če je ime vpisano) in vrne skupno lestvico; null, če ni povezave ali baza ni vklopljena.
-let lestvicaZaprta = false; // o tem odloča strežnik
 // Pošlje tudi najboljše po stopnjah; strežnik vrne združen napredek z vseh telefonov in brskalnikov tega imena.
 async function lestvicaStreznik() {
   try {
@@ -68,7 +67,6 @@ async function lestvicaStreznik() {
       : await fetch('api/lestvica');
     if (!odgovor.ok) return null;
     const podatki = await odgovor.json();
-    lestvicaZaprta = !!podatki.zaprto;
     // medtem zamenjano ime (»Nisi ti?«): odgovor ni več za tega igralca
     if (ime && igralec.ime === ime) {
       // Ime že obstaja na lestvici: od zdaj ta telefon piše v tisti vpis.
@@ -111,19 +109,12 @@ async function odpriLestvico(odkod) {
   const seznam = $('lestvica-seznam');
   seznam.innerHTML = '<li class="nalagam"><span class="mesto">⏳</span><span class="kdo">Nalagam …</span></li>';
   $('lestvica-opomba').textContent = '';
-  $('lestvica-zmagovalec').hidden = true;
   let igralci = await lestvicaStreznik();
   if (!igralci) {
     igralci = [{ id: igralec.id, ime: igralec.ime || 'Ti', ...mojRezultat() }];
     $('lestvica-opomba').textContent = 'Skupna lestvica se ni naložila, zato vidiš samo svoj rezultat.';
-  } else if (lestvicaZaprta) {
-    $('lestvica-opomba').textContent = 'Lestvica je zaprta. Igraš lahko naprej, točke se ne štejejo več.';
-    if (igralci[0]) {
-      $('lestvica-zmagovalec').hidden = false;
-      $('lestvica-zmagovalec').innerHTML = `🏆 Zmaga: <b>${varno(igralci[0].ime)}</b> · ${stevilo(igralci[0].tocke || 0)} točk`;
-    }
-  } else {
-    $('lestvica-opomba').textContent = (igralec.ime ? '' : 'Vpiši ime na prvem zaslonu, da se pokažeš tudi ti. ') + 'Lestvica se zapre v soboto ob 18:00.';
+  } else if (!igralec.ime) {
+    $('lestvica-opomba').textContent = 'Vpiši ime na prvem zaslonu, da se pokažeš tudi ti.';
   }
   seznam.innerHTML = igralci.map((p, i) => `
     <li class="${p.id === igralec.id ? 'jaz' : ''} ${i === 0 ? 'prvi' : ''}" style="animation-delay:${i * 70}ms">

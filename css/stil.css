@@ -732,11 +732,6 @@ button.pokal small { font-family: var(--besedilo); font-size: 13px; font-weight:
 .lestvica-seznam .rezultat small { display: block; font-family: var(--besedilo); font-weight: 800; font-size: 12px; opacity: .7; }
 .lestvica-seznam li.jaz { background: linear-gradient(90deg, #ffd1e6, #fff); box-shadow: 0 0 0 3px var(--koral), 0 3px 0 var(--koral-temna); }
 .lestvica-seznam li.prvi { background: linear-gradient(90deg, #fff1a8, #fff); }
-.lestvica-zmagovalec {
-  margin: 0 0 12px; padding: 10px 14px; border-radius: 16px; font-weight: 800; font-size: 16px; color: #5c1233;
-  background: linear-gradient(180deg, #ffe98a, #ffd23f); box-shadow: 0 3px 0 #c99a12;
-}
-.lestvica-zmagovalec[hidden] { display: none; }
 .lestvica-opomba { margin: 12px 0 0; font-size: 13px; font-weight: 800; opacity: .75; }
 .lestvica-opomba:empty { display: none; }
 
