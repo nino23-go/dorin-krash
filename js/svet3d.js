@@ -1891,6 +1891,8 @@ const Svet3D = (() => {
       ciljKot += e.deltaY * 0.0005;
     }, { passive: false });
     window.addEventListener('resize', () => tece && velikost());
+    // telefon ob obratu sporoči novo velikost, preden je postavitev končana
+    if (window.ResizeObserver) new ResizeObserver(() => tece && velikost()).observe(ovoj);
   }
 
   // ---------- Zanka ----------
