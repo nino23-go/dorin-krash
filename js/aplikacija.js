@@ -4,22 +4,7 @@ const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const pad = n => String(n).padStart(2, '0');
 
-// ---------- Shranjevanje (samo v tem brskalniku) ----------
-
-const KLJUC = 'dorin-kras';
-let napredek = { odklenjeno: 1, zvezdice: {}, zivljenja: ZIVLJENJA.najvec, obnova: Date.now() };
-try {
-  const shranjeno = JSON.parse(localStorage.getItem(KLJUC));
-  if (shranjeno) napredek = { ...napredek, ...shranjeno };
-  // Ko dodamo nove stopnje: kdor je rešil zadnjo staro, dobi odklenjeno naslednjo
-  if (napredek.zvezdice[napredek.odklenjeno] && napredek.odklenjeno < STOPNJE.length) napredek.odklenjeno++;
-} catch (_) {}
-
-function shrani() {
-  try { localStorage.setItem(KLJUC, JSON.stringify(napredek)); } catch (_) {}
-}
-
-// ---------- Igralec in lestvica ----------
+// ---------- Igralec ----------
 
 // Vpis je samo ime: z njim se rezultat tega telefona pokaže na skupni lestvici.
 const KLJUC_IGRALCA = 'dorin-kras-igralec';
@@ -30,6 +15,40 @@ if (!igralec || !/^[a-z0-9]{8,32}$/.test(igralec.id || '')) igralec = { id: novI
 function shraniIgralca() {
   try { localStorage.setItem(KLJUC_IGRALCA, JSON.stringify(igralec)); } catch (_) {}
 }
+
+// ---------- Shranjevanje (samo v tem brskalniku) ----------
+
+// Vsako ime ima svoj napredek, da »Nisi ti?« novemu igralcu ne prenese tujih stopenj in točk.
+// Isto poenotenje kot na strežniku: Žan = zan.
+const kljucImena = ime => ime.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const KLJUC = 'dorin-kras'; // skupni napredek iz časa pred napredkom po imenih
+const kljucNapredka = ime => 'dorin-kras-napredek:' + kljucImena(ime);
+let napredek;
+
+function naloziNapredek() {
+  let shranjeno = null;
+  try {
+    if (igralec.ime) {
+      shranjeno = JSON.parse(localStorage.getItem(kljucNapredka(igralec.ime)));
+      // stari skupni napredek prevzame ime, ki je bilo vpisano, ko smo uvedli napredek po imenih
+      if (!shranjeno && (shranjeno = JSON.parse(localStorage.getItem(KLJUC)))) {
+        localStorage.setItem(kljucNapredka(igralec.ime), JSON.stringify(shranjeno));
+        localStorage.removeItem(KLJUC);
+      }
+    }
+  } catch (_) {}
+  napredek = { odklenjeno: 1, zvezdice: {}, zivljenja: ZIVLJENJA.najvec, obnova: Date.now(), ...shranjeno };
+  // Ko dodamo nove stopnje: kdor je rešil zadnjo staro, dobi odklenjeno naslednjo
+  if (napredek.zvezdice[napredek.odklenjeno] && napredek.odklenjeno < STOPNJE.length) napredek.odklenjeno++;
+}
+naloziNapredek();
+
+function shrani() {
+  if (!igralec.ime) return;
+  try { localStorage.setItem(kljucNapredka(igralec.ime), JSON.stringify(napredek)); } catch (_) {}
+}
+
+// ---------- Lestvica ----------
 
 function mojRezultat() {
   const vsota = o => Object.values(o || {}).reduce((a, b) => a + b, 0);
@@ -92,22 +111,50 @@ function osveziRezultat() {
   $('moj-rezultat').textContent = `${stevilo(r.tocke)} točk`;
 }
 
-function igraj(e) {
+let preverjamIme = false;
+async function igraj(e) {
   if (e) e.preventDefault();
-  if (!igralec.ime) {
-    const ime = $('vpis-ime').value.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 20);
-    if (!ime) {
-      $('vpis').classList.remove('napaka');
-      void $('vpis').offsetWidth;
-      $('vpis').classList.add('napaka');
-      $('vpis-ime').focus();
+  if (igralec.ime) return odpriZemljevid();
+  const ime = $('vpis-ime').value.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 20);
+  if (!ime) {
+    $('vpis').classList.remove('napaka');
+    void $('vpis').offsetWidth;
+    $('vpis').classList.add('napaka');
+    $('vpis-ime').focus();
+    return;
+  }
+  if (preverjamIme) return;
+  // Isto ime = isti igralec. Če to ime že igra drugje, na tem telefonu pa še ne, vprašaj,
+  // da se dve različni Maji ne zlijeta v eno vrstico.
+  let tu = false;
+  try { tu = !!localStorage.getItem(kljucNapredka(ime)); } catch (_) {}
+  if (!tu) {
+    preverjamIme = true;
+    const igralci = await lestvicaStreznik(); // brez imena samo prebere lestvico
+    preverjamIme = false;
+    const obstojec = igralci && igralci.find(p => kljucImena(p.ime || '') === kljucImena(ime));
+    if (obstojec) {
+      okno({
+        naslov: 'To ime že igra 🤔',
+        besedilo: `<b>${varno(obstojec.ime)}</b> ima na lestvici že <b>${stevilo(obstojec.tocke || 0)}</b> točk.<br>Si to ti z drugega telefona?<br><small>Če nisi, dodaj začetnico priimka, npr. ${varno(obstojec.ime)} K.</small>`,
+        gumbi: [
+          { tekst: 'Ja, to sem jaz', akcija: () => vpisi(ime) },
+          { tekst: 'Ne, drugo ime', drugotni: true, akcija: () => { $('vpis-ime').focus(); $('vpis-ime').select(); } },
+        ],
+      });
       return;
     }
-    igralec.ime = ime;
-    shraniIgralca();
-    osveziVpis();
-    lestvicaStreznik();
   }
+  vpisi(ime);
+}
+
+function vpisi(ime) {
+  igralec.ime = ime;
+  shraniIgralca();
+  naloziNapredek();
+  osveziVpis();
+  osveziZivljenja();
+  lestvicaStreznik();
   odpriZemljevid();
 }
 
@@ -584,7 +631,7 @@ for (let i = 0; i < 18; i++) {
 Plosca.init($('plosca'), $('plosca-ovoj'));
 $('play').addEventListener('click', igraj);
 $('vpis').addEventListener('submit', igraj);
-$('nisem-jaz').addEventListener('click', () => { igralec = { id: novId(), ime: '' }; shraniIgralca(); osveziVpis(); $('vpis-ime').value = ''; $('vpis-ime').focus(); });
+$('nisem-jaz').addEventListener('click', () => { igralec = { id: novId(), ime: '' }; shraniIgralca(); naloziNapredek(); osveziZivljenja(); osveziVpis(); $('vpis-ime').value = ''; $('vpis-ime').focus(); });
 $('odpri-lestvico').addEventListener('click', () => odpriLestvico('vstop'));
 
 // Domači zaslon: Android/Chrome ponudi namestitev z enim klikom, iPhone pokaže navodila (Apple gumba ne dovoli)
