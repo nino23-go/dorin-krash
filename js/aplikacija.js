@@ -56,6 +56,7 @@ function mojRezultat() {
 }
 
 // Pošlje rezultat (če je ime vpisano) in vrne skupno lestvico; null, če ni povezave ali baza ni vklopljena.
+let lestvicaZaprta = false; // o tem odloča strežnik
 // Pošlje tudi najboljše po stopnjah; strežnik vrne združen napredek z vseh telefonov in brskalnikov tega imena.
 async function lestvicaStreznik() {
   try {
@@ -67,6 +68,7 @@ async function lestvicaStreznik() {
       : await fetch('api/lestvica');
     if (!odgovor.ok) return null;
     const podatki = await odgovor.json();
+    lestvicaZaprta = !!podatki.zaprto;
     // medtem zamenjano ime (»Nisi ti?«): odgovor ni več za tega igralca
     if (ime && igralec.ime === ime) {
       // Ime že obstaja na lestvici: od zdaj ta telefon piše v tisti vpis.
@@ -109,17 +111,24 @@ async function odpriLestvico(odkod) {
   const seznam = $('lestvica-seznam');
   seznam.innerHTML = '<li class="nalagam"><span class="mesto">⏳</span><span class="kdo">Nalagam …</span></li>';
   $('lestvica-opomba').textContent = '';
+  $('lestvica-zmagovalec').hidden = true;
   let igralci = await lestvicaStreznik();
   if (!igralci) {
     igralci = [{ id: igralec.id, ime: igralec.ime || 'Ti', ...mojRezultat() }];
-    $('lestvica-opomba').textContent = 'Skupna lestvica še ni vklopljena, zato vidiš samo svoj rezultat.';
-  } else if (!igralec.ime) {
-    $('lestvica-opomba').textContent = 'Vpiši ime na prvem zaslonu, da se pokažeš tudi ti.';
+    $('lestvica-opomba').textContent = 'Skupna lestvica se ni naložila, zato vidiš samo svoj rezultat.';
+  } else if (lestvicaZaprta) {
+    $('lestvica-opomba').textContent = 'Lestvica je zaprta. Igraš lahko naprej, točke se ne štejejo več. 🏁 = na cilju';
+    if (igralci[0]) {
+      $('lestvica-zmagovalec').hidden = false;
+      $('lestvica-zmagovalec').innerHTML = `🏆 Zmaga: <b>${varno(igralci[0].ime)}</b> · ${stevilo(igralci[0].tocke || 0)} točk`;
+    }
+  } else {
+    $('lestvica-opomba').textContent = (igralec.ime ? '' : 'Vpiši ime na prvem zaslonu, da se pokažeš tudi ti. ') + 'Lestvica se zapre v soboto ob 18:00. 🏁 = na cilju';
   }
   seznam.innerHTML = igralci.map((p, i) => `
     <li class="${p.id === igralec.id ? 'jaz' : ''} ${i === 0 ? 'prvi' : ''}" style="animation-delay:${i * 70}ms">
       <span class="mesto">${['🥇', '🥈', '🥉'][i] || i + 1}</span>
-      <span class="kdo">${varno(p.ime)}<small>${doStopnje(p.stopnja || 0)}</small></span>
+      <span class="kdo">${varno(p.ime)}${p.stopnja >= STOPNJE.length ? ' 🏁' : ''}<small>${doStopnje(p.stopnja || 0)}</small></span>
       <span class="rezultat"><b>${stevilo(p.tocke || 0)}</b><small>točk</small></span>
     </li>`).join('') || '<li><span class="mesto">🏝️</span><span class="kdo">Še nihče. Bodi prvi!</span></li>';
 }
@@ -309,6 +318,9 @@ function bump(el) {
 let stProslave = 0;
 function zaslonZmage({ st, tocke, bonus, zvezdice, zadnja }) {
   const p = PROSLAVE[stProslave++ % PROSLAVE.length];
+  $('zmaga-naslov').textContent = 'Stopnja opravljena!';
+  $('zmaga-zvezdice').style.display = '';
+  $('zmaga-ponovi').textContent = '↻ Ponovi';
   $('zmaga-pod').textContent = p.besedilo;
   const podnapis = bonus ? `<small>bonus za poteze: ${bonus}</small>` : '';
   stej(0, tocke, 1400, n => { $('zmaga-tocke').innerHTML = `${n} točk` + podnapis; });
@@ -321,13 +333,38 @@ function zaslonZmage({ st, tocke, bonus, zvezdice, zadnja }) {
     z.className = '';
     if (i < zvezdice) setTimeout(() => { z.className = 'polna'; Zvok.zvezda(i); }, 700 + i * 380);
   });
-  const konfeti = $('konfeti');
-  const barve = ['#ffd23f', '#ff4f8b', '#19b5c9', '#ffffff', '#b388ff', '#57cc99'];
-  konfeti.innerHTML = Array.from({ length: 60 }, (_, i) =>
-    `<i style="left:${Math.random() * 100}%;background:${barve[i % barve.length]};--t:${2.5 + Math.random() * 2.5}s;--z:${-Math.random() * 4}s;--x:${(Math.random() - 0.5) * 120}px"></i>`).join('');
+  natresiKonfete();
   $('zmaga-naprej').textContent = zadnja ? 'Na zemljevid' : 'Naprej';
   $('zmaga-naprej').onclick = () => { $('zmaga').classList.remove('odprto'); odpriZemljevid(); };
   $('zmaga-ponovi').onclick = () => { $('zmaga').classList.remove('odprto'); zacniStopnjo(st); };
+  $('zmaga-deli').onclick = deliRezultat;
+  $('zmaga').classList.add('odprto');
+}
+
+function natresiKonfete() {
+  const barve = ['#ffd23f', '#ff4f8b', '#19b5c9', '#ffffff', '#b388ff', '#57cc99'];
+  $('konfeti').innerHTML = Array.from({ length: 60 }, (_, i) =>
+    `<i style="left:${Math.random() * 100}%;background:${barve[i % barve.length]};--t:${2.5 + Math.random() * 2.5}s;--z:${-Math.random() * 4}s;--x:${(Math.random() - 0.5) * 120}px"></i>`).join('');
+}
+
+// Konec igre: prikaže se enkrat, ko čoln prepluje ciljno črto
+async function zaslonCilja() {
+  const igralci = await najvec(lestvicaStreznik(), 2500);
+  const mesto = igralci ? igralci.findIndex(p => p.id === igralec.id) + 1 : 0;
+  const r = mojRezultat();
+  $('zmaga-naslov').textContent = 'Na cilju si! 🏁';
+  $('zmaga-pod').textContent = 'Dora je priveslala do konca Grosupeljščice.';
+  $('zmaga-lik').className = 'zmaga-lik';
+  $('zmaga-lik').innerHTML = `<span>${vsebina({ slika: 'slike/dora-explora.svg', ime: 'Dora' })}</span>`;
+  $('zmaga-zvezdice').style.display = 'none';
+  $('zmaga-tocke').innerHTML = `${stevilo(r.tocke)} točk` + (mesto ? `<small>${mesto}. mesto na lestvici</small>` : '');
+  natresiKonfete();
+  Zvok.zmaga();
+  const zapri = () => $('zmaga').classList.remove('odprto');
+  $('zmaga-naprej').textContent = '🏆 Lestvica';
+  $('zmaga-naprej').onclick = () => { zapri(); odpriLestvico('zemljevid'); };
+  $('zmaga-ponovi').textContent = '🗺️ Zemljevid';
+  $('zmaga-ponovi').onclick = zapri;
   $('zmaga-deli').onclick = deliRezultat;
   $('zmaga').classList.add('odprto');
 }
@@ -443,6 +480,9 @@ function odpriZemljevid() {
   pokazi('zemljevid');
   osveziZivljenja();
   osveziRezultat();
+  // 24. stopnja rešena: čoln enkrat prepluje cilj, potem stoji tam
+  const naCilju = !!napredek.zvezdice[STOPNJE.length];
+  const naCilj = naCilju && !napredek.finale;
   if (Svet3D.podprt) {
     $('zemljevid-ovoj').hidden = true;
     $('svet3d').hidden = false;
@@ -451,7 +491,17 @@ function odpriZemljevid() {
       odklenjeno: napredek.odklenjeno,
       zvezdice: napredek.zvezdice,
       prejsnje: prejsnjeOdklenjeno,
+      naCilju,
+      naCilj,
       onStopnja: odpriPredstopnjo,
+      onCilj: () => {
+        setTimeout(() => {
+          if (document.body.dataset.zaslon !== 'zemljevid') return; // odšel med slavjem: pot se ponovi
+          napredek.finale = true;
+          shrani();
+          zaslonCilja();
+        }, 1800);
+      },
       onOdklep: st => {
         Zvok.odklep();
         const b = document.createElement('div');
@@ -464,6 +514,11 @@ function odpriZemljevid() {
     });
   } else {
     narisiZemljevid();
+    if (naCilj) {
+      napredek.finale = true;
+      shrani();
+      zaslonCilja();
+    }
   }
   prejsnjeOdklenjeno = napredek.odklenjeno;
 }

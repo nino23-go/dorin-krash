@@ -2,10 +2,13 @@
 // Naslov in žeton baze pridejo iz okolja (Vercel → Storage → Upstash Redis → poveži s projektom).
 // Brez njiju funkcija vrne 503 in igra pokaže samo rezultate s tega telefona.
 //
-// GET  /api/lestvica          → { igralci: [{ id, ime, zvezdice, tocke, stopnja }] } (najboljših 50)
+// GET  /api/lestvica          → { igralci: [{ id, ime, zvezdice, tocke, stopnja }], zaprto } (najboljših 50)
 // POST /api/lestvica  { id, ime, zvezdice, tocke, stopnja, stopnje } → shrani in vrne { igralci, jaz, stopnje }
 //   stopnje = { "1": [zvezdice, točke], … } najboljši rezultat po stopnjah; strežnik ga združi s shranjenim
 //   (največje po stopnji) in vrne nazaj, da igralec na novem telefonu ali brskalniku nadaljuje, kjer je ostal.
+//
+// Od KONEC naprej je lestvica zaprta: točke in vrstni red mirujejo, napredek po stopnjah se še shranjuje,
+// da se da igrati naprej. Čas preveri strežnik, zato velja tudi za stare različice igre.
 //
 // Eno ime = en igralec: »Nino«, »nino « in »Ninó« so isti vpis. Kdor se vpiše z imenom, ki že
 // obstaja, piše v obstoječi vpis (ostane boljši rezultat), strežnik pa mu vrne njegov id (jaz).
@@ -16,6 +19,7 @@ const RANG = 'dorin-kras:lestvica';    // urejena množica: razvrščeno po toč
 const PODATKI = 'dorin-kras:igralci';  // zgoščena tabela: id → JSON
 const IMENA = 'dorin-kras:imena';      // zgoščena tabela: poenoteno ime → id
 const NAJVEC = 50;
+const KONEC = Date.UTC(2026, 9, 31, 17, 0, 0); // sobota, 31. 10. 2026, ob 18:00 po slovenskem času (UTC+1)
 
 async function redis(ukazi) {
   const odgovor = await fetch(`${URL_BAZE}/pipeline`, {
@@ -107,23 +111,29 @@ module.exports = async (req, res) => {
       const star = razberi(prej);
       const s = zdruziStopnje(stopnjeIz(star && star.s), stopnjeIz(b.stopnje));
       const vsota = i => Object.values(s).reduce((a, par) => a + par[i], 0);
+      const zaprto = Date.now() >= KONEC;
       // Isto ime z drugega telefona: povsod ostane boljše (stari vpisi še nimajo stopenj, zato tudi max s seštevki)
-      const igralec = {
+      const igralec = zaprto ? {
+        ime: star && star.ime ? star.ime : ime,
+        zvezdice: (star && star.zvezdice) || 0,
+        tocke: (star && star.tocke) || 0,
+        stopnja: (star && star.stopnja) || 0,
+        s,
+      } : {
         ime: star && star.ime ? star.ime : ime,
         zvezdice: Math.max(vsota(0), celo(b.zvezdice, 3 * 60), (star && star.zvezdice) || 0),
         tocke: Math.max(vsota(1), celo(b.tocke, 60 * 50000), (star && star.tocke) || 0),
         stopnja: Math.max(Object.keys(s).length, celo(b.stopnja, 60), (star && star.stopnja) || 0),
         s,
       };
-      await redis([
-        ['HSET', PODATKI, jaz, JSON.stringify(igralec)],
-        ['ZADD', RANG, String(igralec.tocke), jaz],
-      ]);
-      return res.status(200).json({ igralci: await preberi(), jaz, stopnje: s });
+      const ukazi = [['HSET', PODATKI, jaz, JSON.stringify(igralec)]];
+      if (!zaprto) ukazi.push(['ZADD', RANG, String(igralec.tocke), jaz]);
+      await redis(ukazi);
+      return res.status(200).json({ igralci: await preberi(), jaz, stopnje: s, zaprto });
     } else if (req.method !== 'GET') {
       return res.status(405).json({ napaka: 'samo-get-ali-post' });
     }
-    return res.status(200).json({ igralci: await preberi() });
+    return res.status(200).json({ igralci: await preberi(), zaprto: Date.now() >= KONEC });
   } catch (e) {
     return res.status(502).json({ napaka: 'baza-ne-odgovarja' });
   }

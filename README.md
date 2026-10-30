@@ -4,9 +4,9 @@ Dorin Candy Crush, za njen rojstni dan (sobota, 31. 10. 2026, ob 18:00). Načrt 
 
 **V živo:** https://dorin-krash.vercel.app (Vercel projekt `dorin-krash`, objavlja se z veje `main`)
 
-## Trenutno stanje (29. 10. 2026 zvečer)
+## Trenutno stanje (30. 10. 2026)
 
-Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=69` v `index.html`.
+Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=70` v `index.html`.
 
 **Narejeno**
 
@@ -23,13 +23,16 @@ Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=6
   - Ponoči: rave, ogenj s kolegi in osvetljen joga studio z gongom.
   - Na cilju balonski lok s tablo CILJ, šahovnica čez potok in navijači s transparentoma »IDE DORAA!« in »SAM GASSS!«; ponoči lok žari, lučke tečejo, reflektorja in ognjemet.
   - Če WebGL ne dela, se pokaže 2D zemljevid.
+- **Finale:** ko je 24. stopnja rešena, čoln enkrat prepluje cilj (zastavica `finale` v napredku), navijači skačejo, poči ognjemet (tudi podnevi) in odpre se zaslon »Na cilju si!« z mestom na lestvici. Kdor je že prej končal, to vidi ob naslednjem odprtju zemljevida. Potem čoln stoji za lokom, stopnje se da ponavljati.
 - **Glasba in zvok:** generativna, mehka in igriva glasba ter sintetizirani zvoki brez datotek. Na iPhonu se sliši tudi, ko je vklopljen tihi način.
 - **Skupna lestvica:**
   - deluje v živo, prikazuje samo točke (zvezdice so samo v igri);
   - vsako ime je na lestvici samo enkrat: isto ime z drugega telefona piše v obstoječi vpis in ostane boljši rezultat;
   - če vpisano ime že igra drugje, igra vpraša »Si to ti?« (dve Maji naj dodata začetnico priimka);
   - napredek na telefonu je ločen po imenih: »Nisi ti?« novemu igralcu ne prenese tujih stopenj in točk;
-  - strežnik hrani najboljše po stopnjah (polje `s` v vpisu), zato igralec na novem telefonu ali v drugem brskalniku (npr. Messenger → Safari) nadaljuje, kjer je ostal.
+  - strežnik hrani najboljše po stopnjah (polje `s` v vpisu), zato igralec na novem telefonu ali v drugem brskalniku (npr. Messenger → Safari) nadaljuje, kjer je ostal;
+  - 🏁 ob imenu pomeni, da je igralec prišel do konca;
+  - **zaprtje:** v soboto, 31. 10., ob 18:00 (`KONEC` v `api/lestvica.js`, preverja strežnik) točke in vrstni red obmirujejo, na vrhu piše zmagovalec. Igrati se da naprej, napredek po stopnjah se še shranjuje.
 - **Predogled povezave:** Messenger/WhatsApp pokažeta sličico `slike/deli.jpg` z naslovom in vabilom (oznake `og:` na vrhu `index.html`; slika iz `Fotke/_skripte/deli.py`, nato JPG pod ~150 KB).
 
 **Ni preverjeno na pravem telefonu:** zvok na iPhonu, gladkost eksplozij, gong v joga studiu, prvi vpis na lestvico z združevanjem imen.

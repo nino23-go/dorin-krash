@@ -22,9 +22,10 @@ const Svet3D = (() => {
   let n = 0, odklenjeno = 1, zvezdice = {}, onStopnja = () => {};
   let kot = 0, ciljKot = 0, hitrost = 0, tece = false, zankaTece = false, zadnji = 0, cas = 0;
   let kanuKot = 0, kanuOd = 0, kanuDo = 0;
-  // Potovanje čolna po zmagi: t < 0 čaka, 0..TRAJANJE pluje, nato odklep
+  const ZA_CRTO = 0.04; // čoln na cilju stoji za lokom, da ga tabla ne zakrije
+  // Potovanje čolna po zmagi: t < 0 čaka, 0..TRAJANJE pluje, nato odklep (ali slavje, če pluje čez cilj)
   const TRAJANJE = 3.4;
-  let potovanje = null, prikazano = 1, onOdklep = () => {}, odklep = null, razdalja = 40;
+  let potovanje = null, prikazano = 1, onOdklep = () => {}, onCilj = () => {}, odklep = null, razdalja = 40;
   let liki = [], delci = [], teksturaKroga, teksturaZvezde, napisPlatno, napisTekstura, brazdaCas = 0;
   let zar = null, dimCas = 0, balin = null, valovi = [];
   // Ovire: [th, x, pol dolžine vzdolž potoka, pol širine] v enotah; hiše, liki in prigode se jim izognejo
@@ -784,7 +785,7 @@ const Svet3D = (() => {
     nocLok.userData.dinamicno = true;
     nocni.add(nocLok);
 
-    cilj = { th, baloni, nihalo: tabla, navijaci, lucke, sij, reflektorja, ognjemet, naslednji: 0 };
+    cilj = { th, baloni, nihalo: tabla, navijaci, lucke, sij, reflektorja, ognjemet, naslednji: 0, slavje: 0, naslednjiPok: 0 };
   }
 
   function animirajCilj() {
@@ -792,12 +793,20 @@ const Svet3D = (() => {
     // le, ko je cilj blizu kamere
     if (Math.abs(kot - cilj.th) * R > 40) return;
     cilj.nihalo.rotation.z = Math.sin(cas * 1.4) * 0.05;
+    const slavi = cas < cilj.slavje;
+    const hitrostSkoka = slavi ? 8 : 4.2;
     cilj.navijaci.forEach(v => {
-      const skok = Math.abs(Math.sin(cas * 4.2 + v.faza)) * 0.32;
+      const skok = Math.abs(Math.sin(cas * hitrostSkoka + v.faza)) * (slavi ? 0.6 : 0.32);
       v.s.position.copy(v.baza).addScaledVector(v.n, skok);
-      v.s.material.rotation = Math.sin(cas * 4.2 + v.faza) * 0.04;
+      v.s.material.rotation = Math.sin(cas * hitrostSkoka + v.faza) * 0.04;
       v.s.material.color.setHex(noc ? 0xffe6c8 : 0xffffff);
     });
+    // slavje ob prihodu na cilj: pok za pokom podnevi in ponoči
+    if (slavi && cas > cilj.naslednjiPok) {
+      cilj.naslednjiPok = cas + 0.3 + Math.random() * 0.3;
+      const th = cilj.th + (Math.random() - 0.3) * 0.08;
+      razpok(th, xNa(th) + (Math.random() - 0.5) * 7, R + 3 + Math.random() * 3, [0xff4f8b, 0xffd23f, 0x19b5c9, 0xb388ff, 0x57cc99, 0xffffff], 45, 1.2, true);
+    }
     if (!noc) return;
     // lučke tečejo v valu po loku
     cilj.lucke.forEach((l, i) => {
@@ -1913,7 +1922,11 @@ const Svet3D = (() => {
         brazdaCas += dt;
         if (brazdaCas > 0.07) { brazdaCas = 0; brazda(kanuKot); }
       }
-      if (t >= TRAJANJE) {
+      if (t >= TRAJANJE && potovanje.naCilj) {
+        potovanje = null;
+        cilj.slavje = cas + 7;
+        onCilj();
+      } else if (t >= TRAJANJE) {
         potovanje = null;
         prikazano = odklenjeno;
         osveziOznake();
@@ -1926,7 +1939,7 @@ const Svet3D = (() => {
       ciljKot += hitrost;
       hitrost *= 0.92;
     }
-    ciljKot = THREE.MathUtils.clamp(ciljKot, 0, kotStopnje(n + 1));
+    ciljKot = THREE.MathUtils.clamp(ciljKot, 0, kotStopnje(n + 1) + ZA_CRTO);
     kot += (ciljKot - kot) * Math.min(1, dt * (potovanje ? 4 : 7));
     svet.rotation.x = kot;
     postaviKamero(zoom);
@@ -1981,6 +1994,7 @@ const Svet3D = (() => {
   function prikazi(vsebnik, podatki) {
     ({ odklenjeno, zvezdice, onStopnja } = podatki);
     onOdklep = podatki.onOdklep || (() => {});
+    onCilj = podatki.onCilj || (() => {});
     if (!renderer) {
       ovoj = vsebnik;
       n = podatki.stStopenj;
@@ -1995,8 +2009,16 @@ const Svet3D = (() => {
       zgradi();
       priklopiVnos(renderer.domElement);
     }
-    const cilj = kotStopnje(Math.min(odklenjeno, n));
-    if (podatki.prejsnje && podatki.prejsnje < odklenjeno) {
+    const zaCrto = kotStopnje(n + 1) + ZA_CRTO;
+    const cilj = podatki.naCilju || podatki.naCilj ? zaCrto : kotStopnje(Math.min(odklenjeno, n));
+    if (podatki.naCilj) {
+      kanuOd = kotStopnje(n);
+      kanuDo = zaCrto;
+      potovanje = { t: -0.9, naCilj: true };
+      prikazano = n;
+      kanuKot = kanuOd;
+      kot = ciljKot = kanuOd;
+    } else if (podatki.prejsnje && podatki.prejsnje < odklenjeno) {
       kanuOd = kotStopnje(podatki.prejsnje);
       kanuDo = cilj;
       potovanje = { t: -0.9 };
