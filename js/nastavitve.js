@@ -92,7 +92,7 @@ const STOPNJE = [
   { poteze: 20, cilj: 3300, elementi: 6 },
   { poteze: 18, cilj: 3100, elementi: 6 },
   { poteze: 20, cilj: 3600, elementi: 6 },
-  // 13–24: nadaljevanje (za mostom in mimo piknika); cilji po vzorcu 7–12, s simulacijo še niso preverjeni
+  // 13–24: nadaljevanje (za mostom in mimo piknika)
   { poteze: 20, cilj: 3300, elementi: 6 },
   { poteze: 18, cilj: 3100, elementi: 6 },
   { poteze: 22, cilj: 3700, elementi: 6 },
@@ -105,6 +105,13 @@ const STOPNJE = [
   { poteze: 20, cilj: 3800, elementi: 6 },
   { poteze: 18, cilj: 3500, elementi: 6 },
   { poteze: 22, cilj: 4100, elementi: 6 },
+  // 25–30: do Dorine tridesetke; cilji iz simulacije (naključne poteze zmagajo v 35–55 %, premišljene v okoli 85 %)
+  { poteze: 20, cilj: 4000, elementi: 6 },
+  { poteze: 18, cilj: 3800, elementi: 6 },
+  { poteze: 20, cilj: 4300, elementi: 6 },
+  { poteze: 18, cilj: 4000, elementi: 6 },
+  { poteze: 20, cilj: 4500, elementi: 6 },
+  { poteze: 30, cilj: 7000, elementi: 6 },
 ];
 
 // Zvezdice: 1 ob cilju, 2 in 3 ob večkratniku cilja.

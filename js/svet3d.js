@@ -742,6 +742,36 @@ const Svet3D = (() => {
       return { s: sp, baza: tocka(thN, x, R + 1.5), n: normala(thN), faza: i * 1.3 };
     });
     ovire.push([th, xc, 2.4, pol + 5.2], [th - 0.05, xNa(th - 0.05), 2, SIRINA / 2 + 5]);
+
+    // velika balona 3 in 0 za lokom (dovolj daleč, da ne zakrijeta Dore na cilju): Dora praznuje trideseto
+    const baloni30 = ['3', '0'].map((stevka, i) => {
+      const pb = document.createElement('canvas');
+      pb.width = 256; pb.height = 360;
+      const gb = pb.getContext('2d');
+      gb.strokeStyle = '#7a1f45';
+      gb.lineWidth = 4;
+      gb.beginPath(); gb.moveTo(128, 262); gb.quadraticCurveTo(104, 310, 128, 358); gb.stroke();
+      const zlato = gb.createLinearGradient(0, 20, 0, 262);
+      zlato.addColorStop(0, '#fff3a8');
+      zlato.addColorStop(0.5, '#ffd23f');
+      zlato.addColorStop(1, '#ff9f1c');
+      gb.font = '900 280px "Lilita One", "Arial Black", sans-serif';
+      gb.textAlign = 'center';
+      gb.textBaseline = 'middle';
+      gb.lineJoin = 'round';
+      gb.lineWidth = 20;
+      gb.strokeStyle = '#7a1f45';
+      gb.strokeText(stevka, 128, 142);
+      gb.fillStyle = zlato;
+      gb.fillText(stevka, 128, 142);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(pb), transparent: true }));
+      sp.scale.set(2.7, 3.8, 1);
+      sp.userData.svetel = true;
+      svet.add(sp);
+      const thB = th + 0.1, baza = tocka(thB, xNa(thB) + (i ? 1.25 : -1.25), R + 5.2);
+      sp.position.copy(baza);
+      return { s: sp, baza, n: normala(thB), faza: i * 1.7 };
+    });
     proste.push([th, xc - pol], [th, xc + pol]);
 
     // ponoči: veriga lučk po loku, sij za tablo, reflektorja in ognjemet
@@ -785,7 +815,7 @@ const Svet3D = (() => {
     nocLok.userData.dinamicno = true;
     nocni.add(nocLok);
 
-    cilj = { th, baloni, nihalo: tabla, navijaci, lucke, sij, reflektorja, ognjemet, naslednji: 0, slavje: 0, naslednjiPok: 0 };
+    cilj = { th, baloni, baloni30, nihalo: tabla, navijaci, lucke, sij, reflektorja, ognjemet, naslednji: 0, slavje: 0, naslednjiPok: 0 };
   }
 
   function animirajCilj() {
@@ -793,6 +823,7 @@ const Svet3D = (() => {
     // le, ko je cilj blizu kamere
     if (Math.abs(kot - cilj.th) * R > 40) return;
     cilj.nihalo.rotation.z = Math.sin(cas * 1.4) * 0.05;
+    cilj.baloni30.forEach(b => b.s.position.copy(b.baza).addScaledVector(b.n, Math.sin(cas * 1.6 + b.faza) * 0.2));
     const slavi = cas < cilj.slavje;
     const hitrostSkoka = slavi ? 8 : 4.2;
     cilj.navijaci.forEach(v => {

@@ -18,7 +18,7 @@ Dizajn: sijoč, risankast 3D videz, kot je značilen za ta žanr, z rečno in tr
 - [x] Spletna aplikacija (Vercel: https://dorin-krash.vercel.app)
 - [x] Skupni repo → `AGENTS.md`
 - [x] Osnovna igra (base game)
-- [x] Zemljevid stopenj (level roadmap): 3D Grosupeljščica, Dora na kanuju, 24 stopenj
+- [x] Zemljevid stopenj (level roadmap): 3D Grosupeljščica, Dora na kanuju, 30 stopenj
 - [x] Življenja → zavzetost + ura (5 življenj, +1 vsakih 20 minut)
 - [x] Prijava (sign-up): samo vpis imena, brez gesla
 - [x] Lestvica najboljših (leaderboard): Upstash Redis prek Vercela, samo točke, eno ime = en vpis

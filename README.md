@@ -6,14 +6,14 @@ Dorin Candy Crush, za njen rojstni dan (sobota, 31. 10. 2026, ob 18:00). Načrt 
 
 ## Trenutno stanje (30. 10. 2026)
 
-Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=73` v `index.html`.
+Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=74` v `index.html`.
 
 **Narejeno**
 
 - **Znamka:** uradni [rdeči logotip Kraš](https://www.kras.hr/source/images/svg/kras_logo-footer-red.svg), shranjen v `slike/kras-logo.svg`, se uporablja v naslovu, napisih kombinacij/finala in navodilih za namestitev. V besedilnih metapodatkih in sistemskem deljenju ostane berljivo ime igre.
 - **Vstop:** odštevalnik do sobote, vpis z imenom, gumb za namestitev na domači zaslon (PWA).
 - **Igra:**
-  - 24 stopenj, 6 elementov (burek, rakija, pivo, aperol, uteži, domačica) in življenja (5, +1 vsakih 20 minut);
+  - 30 stopenj (Dora praznuje 30 let; zadnja ima 30 potez), 6 elementov (burek, rakija, pivo, aperol, uteži, domačica) in življenja (5, +1 vsakih 20 minut);
   - Dorina bomba: začetna bomba na vsaki stopnji in nova iz verige 3+; ob eksploziji laserji v križ, udarni val in napis BUM;
   - **Laserska Dora:** skupina 5+ ali četrti val verige ustvari turkizen žeton namesto ene navadne bombe. Med pojavoma mora miniti 6 veljavnih potez, na plošči je lahko samo ena; premor se začne znova ob novi stopnji. Val, ki sproža posebne žetone, ne ustvari laserske Dore. Ob premiku se zavrti za 360° in s pari prožnih očesnih žarkov zadene 24 različnih naključnih polj; zadete bombe se sprožijo verižno. Pravila in trajanje so v `DORA_LASER` v `js/nastavitve.js`.
   - tri proslave v krogu: Mičko (stoja), Urbi Bog (sončna očala, verižica, palec gor) in Vlado Kreslin (lastna SVG-ilustracija s klobukom in črno kitaro, brenkanje, lebdeče note in lasten sintetiziran kitarski motiv).
@@ -21,9 +21,9 @@ Igra je v živo in deluje od začetka do konca. Različica v repozitoriju: `?v=7
 - **3D zemljevid:** vrteč se svet ob Grosupeljščici, Dora v čolnu, Mirt in Tupko v pozah.
   - Podnevi: piknik in gora s ferato, po kateri hodijo Dora, Mirt in prijatelja.
   - Ponoči: rave, ogenj s kolegi in osvetljen joga studio z gongom.
-  - Na cilju balonski lok s tablo CILJ, šahovnica čez potok in navijači s transparentoma »IDE DORAA!« in »SAM GASSS!«; ponoči lok žari, lučke tečejo, reflektorja in ognjemet.
+  - Na cilju balonski lok s tablo CILJ, nad njim velika balona 3 in 0, šahovnica čez potok in navijači s transparentoma »IDE DORAA!« in »SAM GASSS!«; ponoči lok žari, lučke tečejo, reflektorja in ognjemet.
   - Če WebGL ne dela, se pokaže 2D zemljevid.
-- **Finale:** ko je 24. stopnja rešena, čoln enkrat prepluje cilj (zastavica `finale` v napredku), navijači skačejo, poči ognjemet (tudi podnevi) in odpre se zaslon »Na cilju si!« z mestom na lestvici. Kdor je že prej končal, to vidi ob naslednjem odprtju zemljevida. Potem čoln stoji za lokom, stopnje se da ponavljati.
+- **Finale:** ko je 30. stopnja rešena, čoln enkrat prepluje cilj (`finale` v napredku hrani število stopenj), navijači skačejo, poči ognjemet (tudi podnevi) in odpre se zaslon »Na cilju si!« z mestom na lestvici. Kdor je končal še pri 24 stopnjah, je ob odprtju dobil okno »Cilj se je premaknil!«. Potem čoln stoji za lokom, stopnje se da ponavljati.
 - **Glasba in zvok:** generativna, mehka in igriva glasba ter sintetizirani zvoki brez datotek. Na iPhonu se sliši tudi, ko je vklopljen tihi način.
 - **Skupna lestvica:**
   - deluje v živo, prikazuje samo točke (zvezdice so samo v igri);

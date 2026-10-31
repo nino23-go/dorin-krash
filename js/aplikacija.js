@@ -39,7 +39,10 @@ function naloziNapredek() {
   } catch (_) {}
   napredek = { odklenjeno: 1, zvezdice: {}, zivljenja: ZIVLJENJA.najvec, obnova: Date.now(), ...shranjeno };
   // Ko dodamo nove stopnje: kdor je rešil zadnjo staro, dobi odklenjeno naslednjo
-  if (napredek.zvezdice[napredek.odklenjeno] && napredek.odklenjeno < STOPNJE.length) napredek.odklenjeno++;
+  if (napredek.zvezdice[napredek.odklenjeno] && napredek.odklenjeno < STOPNJE.length) {
+    if (napredek.odklenjeno === 24) napredek.novCilj = true; // cilj se je premaknil s 24 na 30
+    napredek.odklenjeno++;
+  }
 }
 naloziNapredek();
 
@@ -344,7 +347,7 @@ async function zaslonCilja() {
   const mesto = igralci ? igralci.findIndex(p => p.id === igralec.id) + 1 : 0;
   const r = mojRezultat();
   $('zmaga-naslov').textContent = 'Na cilju si! 🏁';
-  $('zmaga-pod').textContent = 'Dora je priveslala do konca Grosupeljščice.';
+  $('zmaga-pod').textContent = 'Dora je priveslala do 30! Vse najboljše! 🎂';
   $('zmaga-lik').className = 'zmaga-lik';
   $('zmaga-lik').innerHTML = `<span>${vsebina({ slika: 'slike/dora-explora.svg', ime: 'Dora' })}</span>`;
   $('zmaga-zvezdice').style.display = 'none';
@@ -471,9 +474,10 @@ function odpriZemljevid() {
   pokazi('zemljevid');
   osveziZivljenja();
   osveziRezultat();
-  // 24. stopnja rešena: čoln enkrat prepluje cilj, potem stoji tam
+  // zadnja stopnja rešena: čoln enkrat prepluje cilj, potem stoji tam
+  // (finale hrani število stopenj: kdor ga je videl pri 24, ga pri 30 dobi znova)
   const naCilju = !!napredek.zvezdice[STOPNJE.length];
-  const naCilj = naCilju && !napredek.finale;
+  const naCilj = naCilju && napredek.finale !== STOPNJE.length;
   if (Svet3D.podprt) {
     $('zemljevid-ovoj').hidden = true;
     $('svet3d').hidden = false;
@@ -488,7 +492,7 @@ function odpriZemljevid() {
       onCilj: () => {
         setTimeout(() => {
           if (document.body.dataset.zaslon !== 'zemljevid') return; // odšel med slavjem: pot se ponovi
-          napredek.finale = true;
+          napredek.finale = STOPNJE.length;
           shrani();
           zaslonCilja();
         }, 1800);
@@ -506,12 +510,21 @@ function odpriZemljevid() {
   } else {
     narisiZemljevid();
     if (naCilj) {
-      napredek.finale = true;
+      napredek.finale = STOPNJE.length;
       shrani();
       zaslonCilja();
     }
   }
   prejsnjeOdklenjeno = napredek.odklenjeno;
+  if (napredek.novCilj) {
+    delete napredek.novCilj;
+    shrani();
+    okno({
+      naslov: 'Cilj se je premaknil! 🎂',
+      besedilo: 'Dora praznuje 30 let, zato je cilj zdaj na <b>30. stopnji</b>. Do tja je še 6 stopenj!',
+      gumbi: [{ tekst: 'Gremo!' }],
+    });
+  }
 }
 
 // ---------- Stopnja ----------
